@@ -1,34 +1,26 @@
 import { InstanceStatus, TCPHelper } from '@companion-module/base'
+import PQueue from 'p-queue'
+import delay from 'delay'
 import { EndSession, msgDelay, SOM, EOM, keepAliveInterval, control, appTag, paramSep } from './consts.js'
+const queue = new PQueue({ concurrency: 1, interval: msgDelay, intervalCap: 1 })
 
-export function addCmdtoQueue(cmd) {
+export async function addCmdtoQueue(cmd) {
 	if (cmd !== undefined && cmd.length > 5) {
 		if (this.cmdQueue.includes(cmd) === false) {
 			this.cmdQueue.push(cmd)
-			return true
+			return await queue.add(async () => {
+				while (!this.clearToTx) {
+					await delay(10)
+				}
+				this.cmdQueue = this.cmdQueue.splice(this.cmdQueue.indexOf(cmd), 1)
+				return await this.sendCommand(cmd)
+			})
 		} else {
 			this.log('debug', `${cmd} already in queue, discarding`)
 			return false
 		}
-		
 	}
 	this.log('warn', `Invalid command: ${cmd}`)
-	return false
-}
-
-export function processCmdQueue() {
-	if (this.cmdQueue.length > 0 && this.clearToTx) {
-		//dont send command if still waiting for response from last command
-		this.sendCommand(this.cmdQueue.shift())
-		this.cmdTimer = setTimeout(() => {
-			this.processCmdQueue()
-		}, msgDelay)
-		return true
-	}
-	// run at double speed while the queue is empty for better responsiveness
-	this.cmdTimer = setTimeout(() => {
-		this.processCmdQueue()
-	}, msgDelay / 2)
 	return false
 }
 
@@ -37,8 +29,7 @@ export async function sendCommand(cmd) {
 		if (this.socket !== undefined && this.socket.isConnected) {
 			this.log('debug', `Sending Command: ${cmd}`)
 			this.clearToTx = false
-			this.socket.send(cmd + EOM)
-			return true
+			return await this.socket.send(cmd + EOM)
 		} else {
 			this.log('warn', `Socket not connected, tried to send: ${cmd}`)
 		}
@@ -49,13 +40,13 @@ export async function sendCommand(cmd) {
 }
 
 //queries made on initial connection.
-export function queryOnConnect() {
+export async function queryOnConnect() {
 	//request crosspoint notications
-	this.addCmdtoQueue(SOM + control.reqNotification + appTag.crosspoint + 1 + paramSep + 1)
+	await this.addCmdtoQueue(SOM + control.reqNotification + appTag.crosspoint + 1 + paramSep + 1)
 	//request alive notifications
-	this.addCmdtoQueue(SOM + control.reqNotification + appTag.alive + 1 + paramSep + 0)
+	await this.addCmdtoQueue(SOM + control.reqNotification + appTag.alive + 1 + paramSep + 0)
 	//request alarm notifications
-	this.addCmdtoQueue(SOM + control.reqNotification + appTag.alarm + 1 + paramSep + 1)
+	await this.addCmdtoQueue(SOM + control.reqNotification + appTag.alarm + 1 + paramSep + 1)
 	//make sure all feedbacks are accurate
 	this.subscribeFeedbacks()
 	return true
@@ -63,7 +54,7 @@ export function queryOnConnect() {
 
 export function keepAlive() {
 	//request alive notifications
-	this.addCmdtoQueue(SOM + control.reqNotification + appTag.alive + 1 + paramSep + 0)
+	this.addCmdtoQueue(SOM + control.reqNotification + appTag.alive + 1 + paramSep + 0).catch(() => {})
 	this.keepAliveTimer = setTimeout(() => {
 		this.keepAlive()
 	}, keepAliveInterval)
@@ -71,7 +62,7 @@ export function keepAlive() {
 
 export async function initTCP() {
 	this.receiveBuffer = ''
-	if (this.socket !== undefined) {
+	if (this.socket !== undefined && !this.socket.isDestroyed) {
 		await this.sendCommand(EndSession)
 		this.socket.destroy()
 	}
@@ -119,11 +110,11 @@ export async function initTCP() {
 				offset = 0
 			this.receiveBuffer += chunk
 			while ((i = this.receiveBuffer.indexOf(EOM, offset)) !== -1) {
-				line = this.receiveBuffer.substr(offset, i - offset)
+				line = this.receiveBuffer.substring(offset, i)
 				offset = i + 1
 				this.processCmd(line.toString())
 			}
-			this.receiveBuffer = this.receiveBuffer.substr(offset)
+			this.receiveBuffer = this.receiveBuffer.substring(offset)
 		})
 	} else {
 		this.updateStatus(InstanceStatus.BadConfig)

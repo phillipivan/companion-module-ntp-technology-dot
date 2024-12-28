@@ -56,7 +56,7 @@ export default async function (self) {
 				} else {
 					cmd = SOM + control.reqInterrogate + appTag.crosspoint + dst + paramSep + nullParam + addrSep + addrCmd.xpt
 				}
-				self.addCmdtoQueue(cmd)
+				return await self.addCmdtoQueue(cmd)
 			},
 			learn: async (action) => {
 				const dst = parseInt(await self.parseVariablesInString(action.options.dst))
@@ -78,7 +78,7 @@ export default async function (self) {
 				}
 				const cmd =
 					SOM + control.reqInterrogate + appTag.crosspoint + dst + paramSep + nullParam + addrSep + addrCmd.xpt
-				self.addCmdtoQueue(cmd)
+				await self.addCmdtoQueue(cmd)
 			},
 		},
 		source_gain: {
@@ -106,7 +106,7 @@ export default async function (self) {
 				}
 				const cmd =
 					SOM + control.reqGainSet + appTag.crosspoint + src + paramSep + options.gain + addrSep + addrCmd.gain
-				self.addCmdtoQueue(cmd)
+				return await self.addCmdtoQueue(cmd)
 			},
 		},
 		source_p48: {
@@ -131,7 +131,7 @@ export default async function (self) {
 					return undefined
 				}
 				const cmd = SOM + control.reqP48Set + appTag.crosspoint + src + paramSep + options.p48 + addrSep + addrCmd.p48
-				self.addCmdtoQueue(cmd)
+				return await self.addCmdtoQueue(cmd)
 			},
 		},
 		source_delay: {
@@ -158,7 +158,7 @@ export default async function (self) {
 				}
 				const cmd =
 					SOM + control.reqDlySet + appTag.crosspoint + src + paramSep + options.delay + addrSep + addrCmd.delay
-				self.addCmdtoQueue(cmd)
+				return await self.addCmdtoQueue(cmd)
 			},
 		},
 	})

@@ -6,6 +6,8 @@
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"format": "prettier -w .",
+		"lint:raw": "eslint",
+		"lint": "yarn lint:raw .",
 		"package": "companion-module-build"
 	},
 	"license": "MIT",
@@ -14,11 +16,18 @@
 		"url": "git+https://github.com/bitfocus/companion-module-ntp-technology-dot.git"
 	},
 	"dependencies": {
-		"@companion-module/base": "~1.10.0"
+		"@companion-module/base": "~1.11.3",
+		"delay": "^6.0.0",
+		"p-queue": "~8.0.1"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^2.0.0",
-		"prettier": "^3.3.3"
+		"@companion-module/tools": "^2.1.1",
+		"eslint": "^9.17.0",
+		"prettier": "^3.4.2"
 	},
-	"prettier": "@companion-module/tools/.prettierrc.json"
+	"engines": {
+		"node": "^22.12"
+	},
+	"prettier": "@companion-module/tools/.prettierrc.json",
+	"packageManager": "yarn@4.5.3"
 }

@@ -37,6 +37,12 @@ The Action Recorder will translate any connection messages into new connect acti
 
 ## Version History
 
+### Version 1.2.2
+
+- Support consecutive actions
+- Update dependencies
+- Use Node 22
+
 ### Version 1.2.1
 
 - Debounce command queue
